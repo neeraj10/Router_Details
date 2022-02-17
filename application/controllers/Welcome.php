@@ -24,47 +24,48 @@ class Welcome extends CI_Controller {
 		$this->load->database();
 	 }
   
-	
-	 
 	public function index()
 	{
-		$file_data=0;
-		if(isset($_POST['submit']) && !empty($_POST['submit'])) 
-
+		$data = array();
+		$data['result'] = $this->crud->get_data('router_details');
+		$this->load->view('welcome_message',$data);
+		
+	}
+	public function importdata()
+	{ 
+		$this->load->view('import_data');
+		if(isset($_POST["submit"]) && !empty($_FILES['file']['tmp_name']))
 		{
-			$file_data = $this->csvimport->get_array($_FILES["csv_file"]["tmp_name"]);
-			$i=1;	
-			if(!empty($file_data)){
-			foreach($file_data as $row)
-			{
-				$data['Sapid']=$row['Sapid'];
-				$data['Hostname']=$row['Hostname'];
-				$data['Loopback']=$row['Loopback'];
-				$data['mac_address']=$row['mac_address'];
-			 	$this->crud->insert('router_details',$data);
-			 
-			}
-			}else{
-				echo "Please select file";
-			}
+			$file = $_FILES['file']['tmp_name'];
+			//if(!empty($file))
+			$handle = fopen($file, "r");
+			$c = 0;//
+			$count = 0;
 			
-		
+			while(($filesop = fgetcsv($handle, 1000, ",")) !== false)
+			{
+				$count++;
+				if ($count == 1){ 
+					continue;
+				}
+				$sap_id = $filesop[0];
+				$host_name = $filesop[1];
+				$mac_address = $filesop[2];
+				$loopback = $filesop[3];
+				
+				$this->crud->insert($sap_id,$host_name,$mac_address,$loopback);
+				
+			}
+			 redirect('welcome');
+				
 		}
-
-		
-		$this->db->get('router_details');
-		$this->load->view('welcome_message');
 	}
 	public function get_items()
    {
       $draw = intval($this->input->get("draw"));
       $start = intval($this->input->get("start"));
       $length = intval($this->input->get("length"));
-
-
       $query = $this->db->get("router_details");
-
-
       $data = [];
 
 
@@ -109,7 +110,8 @@ class Welcome extends CI_Controller {
 		'mac_address' => $mac,
 	];
 
-	$this->crud->update('router_details',$id,$data);
+	return $this->crud->update('router_details',$id,$data);
+	redirect('welcome');
    }
    
 }
